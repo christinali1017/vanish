@@ -1,0 +1,95 @@
+--- main.go.orig	2015-05-04 15:34:31.000000000 -0500
++++ main.go	2015-05-04 15:37:16.000000000 -0500
+@@ -63,9 +63,9 @@
+ 			log.Fatal(err)
+ 		}
+ 		line = strings.TrimSpace(line)
+-        if line == ""{
+-            continue
+-        }
++		if line == "" {
++			continue
++		}
+ 		resp := executeLine(kadem, line)
+ 		if resp == "quit" {
+ 			quit = true
+@@ -129,18 +129,18 @@
+ 				response = "ERR: Not a valid Node ID or host:port address"
+ 				return
+ 			}
+-            ipAddrStrings, err := net.LookupHost(hostname)
++			ipAddrStrings, err := net.LookupHost(hostname)
+ 			if err != nil {
+ 				response = "ERR: Could not find the provided hostname"
+ 				return
+ 			}
+-            var host net.IP
+-            for i := 0; i < len(ipAddrStrings); i++ {
+-                host = net.ParseIP(ipAddrStrings[i])
+-                if host.To4() != nil {
+-                    break
+-                }
+-            }
++			var host net.IP
++			for i := 0; i < len(ipAddrStrings); i++ {
++				host = net.ParseIP(ipAddrStrings[i])
++				if host.To4() != nil {
++					break
++				}
++			}
+ 			response = k.DoPing(host, uint16(port))
+ 			return
+ 		}
+@@ -239,11 +239,11 @@
+ 
+ 	case toks[0] == "iterativeFindNode":
+ 		// perform an iterative find node
+-		if len(toks) < 2 || len(toks) > 2 {
++		if len(toks) != 2 {
+ 			response = "usage: iterativeFindNode [nodeID]"
+ 			return
+ 		}
+-		id, err := kademlia.IDFromString(toks[2])
++		id, err := kademlia.IDFromString(toks[1])
+ 		if err != nil {
+ 			response = "ERR: Provided an invalid node ID(" + toks[1] + ")"
+ 			return
+@@ -252,31 +252,32 @@
+ 
+ 	case toks[0] == "iterativeStore":
+ 		// perform an iterative store
+-		if len(toks) < 2 || len(toks) > 2 {
++		if len(toks) != 3 {
+ 			response = "usage: iterativeStore [key] [value]"
+ 			return
+ 		}
+ 		key, err := kademlia.IDFromString(toks[1])
+ 		if err != nil {
+-			response = "ERR: Provided an invalid key (" + toks[2] + ")"
++			response = "ERR: Provided an invalid key (" + toks[1] + ")"
+ 			return
+ 		}
+ 		response = k.DoIterativeStore(key, []byte(toks[2]))
+ 
+ 	case toks[0] == "iterativeFindValue":
+ 		// performa an iterative find value
+-		if len(toks) < 2 || len(toks) > 2 {
++		if len(toks) != 2 {
+ 			response = "usage: iterativeFindValue [key]"
+ 			return
+ 		}
+-		key, err := kademlia.IDFromString(toks[2])
++		key, err := kademlia.IDFromString(toks[1])
+ 		if err != nil {
+ 			response = "ERR: Provided an invalid key (" + toks[1] + ")"
+ 			return
+ 		}
+ 		response = k.DoIterativeFindValue(key)
+-    default:
+-        response = "ERR: Unknown command"
++
++	default:
++		response = "ERR: Unknown command"
+ 	}
+ 	return
+ }

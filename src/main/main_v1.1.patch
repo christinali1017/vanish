@@ -1,0 +1,12 @@
+--- main.go.old	2015-04-14 19:21:47.000000000 -0500
++++ main.go	2015-04-14 19:20:22.000000000 -0500
+@@ -63,6 +63,9 @@
+ 			log.Fatal(err)
+ 		}
+ 		line = strings.TrimSpace(line)
++        if line == ""{
++            continue
++        }
+ 		resp := executeLine(kadem, line)
+ 		if resp == "quit" {
+ 			quit = true

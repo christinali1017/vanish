@@ -100,6 +100,13 @@ type Contacter struct {
 	contactList []Contact
 }
 
+//vanish
+func (k *Kademlia) DoVanishData(vdoid ID, data []byte, N byte, threshold byte) string {
+	vdo := VanishData(*k, data, N, threshold)
+	res := k.DoStore(&k.SelfContact, vdoid, vdo)
+	return res
+}
+
 func NewKademlia(nodeid ID, laddr string) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
 	k := new(Kademlia)
@@ -1060,3 +1067,5 @@ func (k *Kademlia) DistanceContactToContact(distanceContact ContactDistance, id 
 	contact = &distanceContact.SelfContact
 	return *contact
 }
+
+

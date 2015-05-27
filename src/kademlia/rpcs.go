@@ -36,7 +36,20 @@ type GetVDOResult struct {
 	VDO VanashingDataObject
 }
 
-func (kc *KademliaCore) GetVDO (req GetVDORequest, RES *GetVDOResult) error {
+func (kc *KademliaCore) GetVDO (req GetVDORequest, res *GetVDOResult) error {
+	k := (*kc).kademlia
+
+	// test if key exists in map, if exists, ok = true
+	k.storeMutex.RLock()
+	value, ok := k.vdoMap[req.VdoID]
+	k.storeMutex.RUnlock()
+
+	//if key exists
+	if ok {
+		res.MsgID = req.MsgID
+		res.VDO = value
+	} 
+
 	return nil
 }
 

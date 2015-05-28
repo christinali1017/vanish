@@ -22,6 +22,38 @@ type Contact struct {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Vanish
+///////////////////////////////////////////////////////////////////////////////
+
+type GetVDORequest struct {
+	Sender Contact
+	MsgID ID
+	VdoID ID
+}
+
+type GetVDOResult struct {
+	MsgID ID
+	VDO VanashingDataObject
+}
+
+func (kc *KademliaCore) GetVDO (req GetVDORequest, res *GetVDOResult) error {
+	k := (*kc).kademlia
+
+	// test if key exists in map, if exists, ok = true
+	k.storeMutex.RLock()
+	value, ok := k.vdoMap[req.VdoID]
+	k.storeMutex.RUnlock()
+
+	//if key exists
+	if ok {
+		res.MsgID = req.MsgID
+		res.VDO = value
+	} 
+
+	return nil
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // PING
 ///////////////////////////////////////////////////////////////////////////////
 type PingMessage struct {

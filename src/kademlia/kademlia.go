@@ -40,6 +40,7 @@ type Kademlia struct {
 	buckets     [IDBytes * 8]*list.List
 	storeMutex  sync.RWMutex
 	storeMap    map[ID][]byte
+	vdoMap      map[ID]VanashingDataObject
 }
 
 type ContactDistance struct {
@@ -98,6 +99,18 @@ type ShortestDistance struct {
 type Contacter struct {
 	selfContact Contact
 	contactList []Contact
+}
+
+//vanish
+func (k *Kademlia) DoVanishData(vdoid ID, data []byte, N byte, threshold byte) string {
+	vdo := VanishData(*k, data, N, threshold)
+	if len(vdo.Ciphertext) == 0 {
+		return "vdo is nil"
+	}
+	k.storeMutex.Lock()
+	k.vdoMap[vdoid] = vdo
+	k.storeMutex.Unlock()
+	return "ok"
 }
 
 func NewKademlia(nodeid ID, laddr string) *Kademlia {
@@ -1095,3 +1108,5 @@ func (k *Kademlia) DistanceContactToContact(distanceContact ContactDistance, id 
 	contact = &distanceContact.SelfContact
 	return *contact
 }
+
+

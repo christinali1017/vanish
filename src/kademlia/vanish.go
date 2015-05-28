@@ -7,7 +7,7 @@ import (
 	"io"
     "time"
 	mathrand "math/rand"
-	//"sss"
+	"sss"
 )
 
 type VanashingDataObject struct {
@@ -74,7 +74,32 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 
 func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 	threshold byte) (vdo VanashingDataObject) {
-	return
+	k := GenerateRandomCryptoKey()
+	ciphertext := encrypt(k, data)
+	splitKeysMap, err := sss.Split(numberKeys, threshold, ciphertext)
+	vdo = *new(VanashingDataObject)
+
+	if err != nil {
+		return vdo
+	}
+
+	accessKey := GenerateRandomAccessKey()
+	randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
+
+
+	//store keys
+	for  i := 0; i < len(randomSequence); i++ { 
+		all := append(splitKeysMap[byte(i)], byte(i))
+		kadem.DoIterativeStore(randomSequence[i], all)
+	}
+
+	//create vdo object
+	
+	vdo.AccessKey = accessKey
+	vdo.Ciphertext = ciphertext
+	vdo.NumberKeys = numberKeys
+	vdo.Threshold = threshold
+	return 
 }
 
 func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {

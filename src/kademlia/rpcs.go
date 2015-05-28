@@ -27,16 +27,16 @@ type Contact struct {
 
 type GetVDORequest struct {
 	Sender Contact
-	MsgID ID
-	VdoID ID
+	MsgID  ID
+	VdoID  ID
 }
 
 type GetVDOResult struct {
 	MsgID ID
-	VDO VanashingDataObject
+	VDO   VanashingDataObject
 }
 
-func (kc *KademliaCore) GetVDO (req GetVDORequest, res *GetVDOResult) error {
+func (kc *KademliaCore) GetVDO(req GetVDORequest, res *GetVDOResult) error {
 	k := (*kc).kademlia
 
 	// test if key exists in map, if exists, ok = true
@@ -48,7 +48,7 @@ func (kc *KademliaCore) GetVDO (req GetVDORequest, res *GetVDOResult) error {
 	if ok {
 		res.MsgID = req.MsgID
 		res.VDO = value
-	} 
+	}
 
 	return nil
 }
@@ -200,21 +200,5 @@ func (kc *KademliaCore) FindValue(req FindValueRequest, res *FindValueResult) er
 	//update contact
 	k.UpdateContact(req.Sender)
 
-	return nil
-}
-
-type GetVDORequest struct {
-	Sender Contact
-	MsgID  ID
-	VdoID  ID
-}
-
-type GetVDOResult struct {
-	MsgID ID
-	VDO   VanashingDataObject
-}
-
-func (kc *KademliaCore) GetVDO(req GetVDORequest, res *GetVDOResult) error {
-	// fill in
 	return nil
 }

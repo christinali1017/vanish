@@ -5,9 +5,9 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"io"
-    "time"
 	mathrand "math/rand"
 	"sss"
+	"time"
 )
 
 type VanashingDataObject struct {
@@ -25,9 +25,9 @@ func GenerateRandomCryptoKey() (ret []byte) {
 }
 
 func GenerateRandomAccessKey() (accessKey int64) {
-    r := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
-    accessKey = r.Int63()
-    return
+	r := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+	accessKey = r.Int63()
+	return
 }
 
 func CalculateSharedKeyLocations(accessKey int64, count int64) (ids []ID) {
@@ -86,22 +86,50 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 	accessKey := GenerateRandomAccessKey()
 	randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
 
-
 	//store keys
-	for  i := 0; i < len(randomSequence); i++ { 
+	for i := 0; i < len(randomSequence); i++ {
 		all := append(splitKeysMap[byte(i)], byte(i))
 		kadem.DoIterativeStore(randomSequence[i], all)
 	}
 
 	//create vdo object
-	
+
 	vdo.AccessKey = accessKey
 	vdo.Ciphertext = ciphertext
 	vdo.NumberKeys = numberKeys
 	vdo.Threshold = threshold
-	return 
+	return
 }
 
 func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
-	return
+	accessKey := vdo.AccessKey
+	ciphertext := vdo.Ciphertext
+	numberOfKeys := vdo.NumberKeys
+	threShold := vdo.Threshold
+	splitKeysMap := make(map[byte][]byte)
+
+	randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
+
+	//store keys
+	for i := 0; i < len(randomSequence); i++ {
+		resString := kadem.DoIterativeFindValue(randomSequence[i])
+		indexV := strings.Index(resString, "Value:")
+		if indexV != -1 {
+			indexV = indexV + 7
+			resString = resString[indexV:]
+			splitKeysMap[randomSequence[i]] = resString
+			if len(splitKeysMap) == threShold {
+				break
+			}
+		} else {
+			continue
+		}
+	}
+	if len(splitKeysMap) == threShold {
+		secretKey := Combine(splitKeysMap)
+		plainTexy := decrypt(secretKey, ciphertext)
+		return plainTexy
+	}
+
+	return nil
 }

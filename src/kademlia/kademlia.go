@@ -208,9 +208,13 @@ func (k *Kademlia) DoUnVanishData(contact *Contact, searchVodId ID) string {
 	if vdoRes == nil {
 		return "No Record"
 	}
-	ids := CalculateSharedKeyLocations(vdoRes.AccessKey, vdoRes.NumberKeys)
+	data := UnvanishData(*k, vdoRes)
 
-	return "ok, result is: " + res
+	if data != nil {
+		return "ok, Unvanish result is: " + data
+	} else {
+		return nil
+	}
 }
 
 // This is the function to perform the RPC
@@ -831,9 +835,10 @@ HandleLoop:
 		clostestNode.shortDistanceMutex.RUnlock()
 		k.DoStore(&dostoreContact, key, returnValue)
 		for k := range returnedValueMap {
-			returnString = returnString + " ID: " + k.AsString() + " Value: " + string(returnValue[:]) + ", "
+			returnString = returnString + " ID: " + k.AsString() + " Value: " + string(returnValue[:])
+			break
 		}
-		returnString = returnString[:len(returnString)-2]
+		//returnString = returnString[:len(returnString)-2]
 	} else {
 		returnString = "ERR: Value not found"
 	}
@@ -1108,5 +1113,3 @@ func (k *Kademlia) DistanceContactToContact(distanceContact ContactDistance, id 
 	contact = &distanceContact.SelfContact
 	return *contact
 }
-
-

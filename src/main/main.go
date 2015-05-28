@@ -303,7 +303,7 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
 			response = "ERR: Provided an invalid vdoId (" + toks[1] + ")"
 			return
 		}
-		response = k.DoVanishData(vdoId, toks[2], toks[3], toks[4]) //[VDO ID] [data] [numberKeys] [threshold]
+		response = k.DoVanishData(vdoId, []byte(toks[2]), byte(toks[3]), byte(toks[4])) //[VDO ID] [data] [numberKeys] [threshold]
 
 	case toks[0] == "unvanish":
 		// performa an iterative find value

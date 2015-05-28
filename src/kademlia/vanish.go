@@ -7,6 +7,7 @@ import (
 	"io"
 	mathrand "math/rand"
 	"sss"
+	"strings"
 	"time"
 )
 
@@ -108,7 +109,7 @@ func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
 	threShold := vdo.Threshold
 	splitKeysMap := make(map[byte][]byte)
 
-	randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
+	randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberOfKeys))
 
 	//store keys
 	for i := 0; i < len(randomSequence); i++ {
@@ -117,19 +118,19 @@ func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
 		if indexV != -1 {
 			indexV = indexV + 7
 			resString = resString[indexV:]
-			splitKeysMap[randomSequence[i]] = resString
-			if len(splitKeysMap) == threShold {
+			splitKeysMap[byte(i)] = []byte(resString)
+			if int64(len(splitKeysMap)) == int64(threShold) {
 				break
 			}
 		} else {
 			continue
 		}
 	}
-	if len(splitKeysMap) == threShold {
-		secretKey := Combine(splitKeysMap)
-		plainTexy := decrypt(secretKey, ciphertext)
-		return plainTexy
+	if int64(len(splitKeysMap)) == int64(threShold) {
+		secretKey := sss.Combine(splitKeysMap)
+		data = decrypt(secretKey, ciphertext)
+		return
 	}
 
-	return nil
+	return
 }

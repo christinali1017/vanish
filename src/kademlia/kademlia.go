@@ -199,21 +199,21 @@ func (k *Kademlia) DoUnVanishData(contact *Contact, searchVodId ID) string {
 	getVDOResult := new(GetVDOResult)
 
 	//find node
-	err = client.Call("KademliaCore.GetVDO", findNodeRequest, findNodeRes)
+	err = client.Call("KademliaCore.GetVDO", getVDORequest, getVDOResult)
 	if err != nil {
 		return err.Error()
 	}
 
 	vdoRes := getVDOResult.VDO
-	if vdoRes == nil {
-		return "No Record"
-	}
+
 	data := UnvanishData(*k, vdoRes)
 
-	if data != nil {
-		return "ok, Unvanish result is: " + data
+	if len(data) != 0 {
+		result := string(data[:len(data)-1])
+
+		return "ok, Unvanish result is: " + result
 	} else {
-		return nil
+		return "No Record"
 	}
 }
 

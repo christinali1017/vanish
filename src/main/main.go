@@ -292,6 +292,41 @@ func executeLine(k *kademlia.Kademlia, line string) (response string) {
 			return
 		}
 		response = k.DoIterativeFindValue(key)
+	case toks[0] == "vanish":
+		// performa an iterative find value
+		if len(toks) != 5 {
+			response = "vanish [VDO ID] [data] [numberKeys] [threshold]"
+			return
+		}
+		vdoId, err := kademlia.IDFromString(toks[1])
+		if err != nil {
+			response = "ERR: Provided an invalid vdoId (" + toks[1] + ")"
+			return
+		}
+		response = k.DoVanishData(vdoId, toks[2], toks[3], toks[4]) //[VDO ID] [data] [numberKeys] [threshold]
+
+	case toks[0] == "unvanish":
+		// performa an iterative find value
+		if len(toks) != 3 {
+			response = "usage: unvanish [Node ID] [VDO ID]"
+			return
+		}
+		nodeId, err := kademlia.IDFromString(toks[1])
+		if err != nil {
+			response = "ERR: Provided an invalid nodeId (" + toks[1] + ")"
+			return
+		}
+		contact, err := k.FindContact(nodeId)
+		if err != nil {
+			response = "ERR: Unable to find contact with node ID (" + toks[1] + ")"
+			return
+		}
+		vdoId, err := kademlia.IDFromString(toks[2])
+		if err != nil {
+			response = "ERR: Provided an invalid vdoId (" + toks[2] + ")"
+			return
+		}
+		response = k.DoUnVanishData(contact, vdoId)
 
 	default:
 		response = "ERR: Unknown command"

@@ -165,6 +165,41 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	return nil, &NotFoundError{nodeId, "Not found"}
 }
 
+//DoUnVanishData
+func (k *Kademlia) DoUnVanishData(contact *Contact, searchVodId ID) string {
+	// If all goes well, return "OK: <output>", otherwise print "ERR: <messsage>"
+
+	// client, err := rpc.DialHTTP("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)))
+	client, err := rpc.DialHTTPPath("tcp", contact.Host.String()+":"+strconv.Itoa(int(contact.Port)), rpc.DefaultRPCPath+strconv.Itoa(int(contact.Port)))
+
+	if err != nil {
+
+		return err.Error()
+	}
+
+	//create find node request and result
+	getVDORequest := new(GetVDORequest)
+	getVDORequest.Sender = k.SelfContact
+	getVDORequest.MsgID = NewRandomID()
+	getVDORequest.VdoID = searchVodId
+
+	getVDOResult := new(GetVDOResult)
+
+	//find node
+	err = client.Call("KademliaCore.GetVDO", findNodeRequest, findNodeRes)
+	if err != nil {
+		return err.Error()
+	}
+
+	vdoRes := getVDOResult.VDO
+	if vdoRes == nil {
+		return "No Record"
+	}
+	ids := CalculateSharedKeyLocations(vdoRes.AccessKey, vdoRes.NumberKeys)
+
+	return "ok, result is: " + res
+}
+
 // This is the function to perform the RPC
 func (k *Kademlia) DoPing(host net.IP, port uint16) string {
 

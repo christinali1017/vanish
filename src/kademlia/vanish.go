@@ -113,6 +113,7 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 		       select {
 		        case <- ticker.C:
 		        	// republish
+		        	accessKey := GenerateRandomAccessKey()
 	        		randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
 					//store keys
 					for i := 0; i < len(randomSequence); i++ {

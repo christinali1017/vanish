@@ -248,8 +248,9 @@ func TestIterativeFindFunctions(t *testing.T) {
 	randint2 := rand.Intn(20)
 	instance2 := instances[randint2]
 	vdoId := NewRandomID()
+	validPeroid := 9
 	data := "Hello World"
-	instance1.DoVanishData(vdoId, []byte(data), byte(20), byte(10)) //vanish [VDO ID] [data] [numberKeys] [threshold]
+	instance1.DoVanishData(vdoId, []byte(data), byte(20), byte(10), validPeroid) //vanish [VDO ID] [data] [numberKeys] [threshold]
 	response := instance2.DoUnVanishData(&instance1.SelfContact, vdoId)
 	if "ok, Unvanish result is: "+data != response {
 		t.Error("ERR: didn't find what we expected")

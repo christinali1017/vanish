@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const Hour time.Duration = 1500 * time.Minute
+
 type VanashingDataObject struct {
 	AccessKey  int64
 	Ciphertext []byte
@@ -76,7 +78,7 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 }
 
 func VanishData(kadem Kademlia, data []byte, numberKeys byte,
-	threshold byte) (vdo VanashingDataObject) {
+	threshold byte, validPeriod int) (vdo VanashingDataObject) {
 	k := GenerateRandomCryptoKey()
 	ciphertext := encrypt(k, data)
 	splitKeysMap, err := sss.Split(numberKeys, threshold, k)
@@ -101,6 +103,36 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 		// fmt.Printf("%x", string(v[:]))
 		// fmt.Println("beforem interative store length:" + strconv.Itoa(len(all)))
 		kadem.DoIterativeStore(randomSequence[i], all)
+	}
+
+	if (validPeriod > 8) {
+		ticker := time.NewTicker(Hour * 8)
+		stop := make(chan int)
+		go func() {
+		    for {
+		       select {
+		        case <- ticker.C:
+		        	// republish
+	        		randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
+					//store keys
+					for i := 0; i < len(randomSequence); i++ {
+						//all := append([]byte{k}, v...)
+						k := byte(i + 1)
+						v := splitKeysMap[k]
+						all := append([]byte{k}, v...)
+						kadem.DoIterativeStore(randomSequence[i], all)
+					}
+					validPeriod = validPeriod - 8
+					if validPeriod <= 0 {
+						stop <- 1
+					}
+		            
+		        case <- stop:
+		            ticker.Stop()
+		            return
+		        }
+		    }
+	 	}()
 	}
 
 	//create vdo object

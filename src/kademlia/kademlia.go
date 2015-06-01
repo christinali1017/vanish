@@ -109,8 +109,8 @@ type Contacter struct {
 }
 
 //vanish
-func (k *Kademlia) DoVanishData(vdoid ID, data []byte, N byte, threshold byte) string {
-	vdo := VanishData(*k, data, N, threshold)
+func (k *Kademlia) DoVanishData(vdoid ID, data []byte, N byte, threshold byte, validPeriod int) string {
+	vdo := VanishData(*k, data, N, threshold, validPeriod)
 	if len(vdo.Ciphertext) == 0 {
 		return "vdo is nil"
 	}

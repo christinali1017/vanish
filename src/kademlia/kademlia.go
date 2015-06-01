@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 	// "os"
+	// "bytes"
 )
 
 // const (
@@ -29,7 +30,7 @@ const (
 	TOTAL_BUCKETS                 = 8 * IDBytes
 	MAX_BUCKET_SIZE               = 20
 	ALPHA                         = 3
-	TIME_INTERVAL   time.Duration = 500 * time.Millisecond
+	TIME_INTERVAL   time.Duration = 1500 * time.Millisecond
 	RERPONSE_LIMIT  time.Duration = 1000 * time.Millisecond
 )
 
@@ -67,6 +68,12 @@ type Counter struct {
 type Valuer struct {
 	value  []byte
 	NodeID ID
+}
+
+type ReturnValuer struct {
+	returnedValueMap    map[ID]bool
+	value               []byte
+	returnedValuerMutex sync.RWMutex
 }
 
 type UnqueriedList struct {
@@ -123,6 +130,7 @@ func NewKademlia(nodeid ID, laddr string) *Kademlia {
 
 	// make message map
 	k.storeMap = make(map[ID][]byte)
+	k.vdoMap = make(map[ID]VanashingDataObject)
 
 	s := rpc.NewServer() // Create a new RPC server
 	s.Register(&KademliaCore{k})
@@ -209,7 +217,7 @@ func (k *Kademlia) DoUnVanishData(contact *Contact, searchVodId ID) string {
 	data := UnvanishData(*k, vdoRes)
 
 	if len(data) != 0 {
-		result := string(data[:len(data)-1])
+		result := string(data[:])
 
 		return "ok, Unvanish result is: " + result
 	} else {
@@ -271,7 +279,8 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) string {
 	if err != nil {
 		return err.Error()
 	}
-	fmt.Println("Store " + key.AsString() + " to " + contact.NodeID.AsString() + " Successfully")
+	//n := bytes.Index(value, []byte{0})
+	fmt.Println("Store " + "key:" + key.AsString() + "Value: " + string(value[:len(value)-1]) + "len: " + strconv.Itoa(len(value)) + " to " + contact.NodeID.AsString() + " Successfully")
 	k.UpdateContact(*contact)
 	defer client.Close()
 	return "ok"
@@ -657,8 +666,10 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 
 	//node that we have seen
 	seenMap := make(map[ID]bool)
-	returnedValueMap := make(map[ID]bool)
+	//returnedValueMap := make(map[ID]bool)
 
+	returnValuer := new(ReturnValuer)
+	returnValuer.returnedValueMap = make(map[ID]bool)
 	//nodes that have not been queried yet
 	queryWaitList := new(QueryWaitList)
 	queryWaitList.waitList = make([]ContactDistance, 0)
@@ -698,7 +709,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 		for {
 			select {
 			case contacter := <-contactChan:
-				// fmt.Println("ShortList Active Incoming")
+				//fmt.Println("ShortList Active Incoming")
 				contacts := contacter.contactList
 				activeContact := contacter.selfContact
 				shortList <- activeContact
@@ -713,6 +724,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 					for _, contact := range contacts {
 						if _, ok := seenMap[contact.NodeID]; ok == false {
 							queryWaitList.queryListMutex.Lock()
+							//fmt.Println("Add into querywaitlist")
 							queryWaitList.waitList = append(queryWaitList.waitList, k.ContactToDistanceContact(contact, key))
 							queryWaitList.queryListMutex.Unlock()
 							seenMap[contact.NodeID] = true
@@ -722,8 +734,9 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 					queryWaitList.queryListMutex.Lock()
 					sort.Sort(ByDistance(queryWaitList.waitList))
 					if len(queryWaitList.waitList) == 0 {
-						// fmt.Println("not improve because wait list length is !!!!!!!!!!!!!")
+						//fmt.Println("not improve because wait list length is 0!!!!!!!!!!!!!")
 						clostestNodeImproved = false
+						queryWaitList.queryListMutex.Unlock()
 						break
 					}
 					clostestTemp := queryWaitList.waitList[0]
@@ -732,7 +745,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 					//check if short list is improved
 					clostestNode.shortDistanceMutex.Lock()
 					if clostestNode.Distance.Compare(clostestNode.Distance) == 1 {
-						// fmt.Println("not improve because no close!!!!!!!!!!!!!!!!!!!!!!!")
+						//fmt.Println("not improve because no close!!!!!!!!!!!!!!!!!!!!!!!")
 						clostestNodeImproved = false
 					} else {
 						clostestNode.Distance = distanceTemp
@@ -741,9 +754,13 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 					clostestNode.shortDistanceMutex.Unlock()
 				}
 			case valuer := <-valueChan:
-				fmt.Println("Value returned")
-				returnValue = valuer.value
-				returnedValueMap[valuer.NodeID] = true
+				//fmt.Println("Value returned")
+				//returnValue = valuer.value
+				returnValuer.returnedValuerMutex.Lock()
+				returnValuer.returnedValueMap[valuer.NodeID] = true
+				returnValuer.value = valuer.value
+				returnValuer.returnedValuerMutex.Unlock()
+				//returnedValueMap[valuer.NodeID] = true
 				stopper.stopMutex.Lock()
 				stopper.value = 3
 				stopper.stopMutex.Unlock()
@@ -758,11 +775,17 @@ func (k *Kademlia) DoIterativeFindValue(key ID) string {
 	//stop channel for time
 HandleLoop:
 	for {
+		//fmt.Println("Dead here 1")
 		queryWaitList.queryListMutex.RLock()
 		querylistLen := len(queryWaitList.waitList)
 		queryWaitList.queryListMutex.RUnlock()
+		//fmt.Println("Dead here 1.1")
+
+		//Important here
 		if len(contactChan) == 0 && len(valueChan) == 0 {
+			time.Sleep(TIME_INTERVAL)
 			if querylistLen == 0 {
+				//fmt.Println("Dead here 2")
 				stopper.stopMutex.Lock()
 				stopper.value = 2
 				stopper.stopMutex.Unlock()
@@ -773,9 +796,12 @@ HandleLoop:
 		queryWaitList.queryListMutex.Lock()
 		sort.Sort(ByDistance(queryWaitList.waitList))
 		queryWaitList.queryListMutex.Unlock()
+		//fmt.Println("Dead here 1.2")
 
 		for i := 0; i < ALPHA && querylistLen > 0; i++ {
 			//check if end
+			//fmt.Println("Dead here 3")
+
 			stopper.stopMutex.RLock()
 			if stopper.value != 0 {
 				break
@@ -801,20 +827,42 @@ HandleLoop:
 		}
 	}
 	//wait till zero
-	// for {
-	// 	fmt.Println("Waiting for zero")
-	// 	if len(valueChan) == 0 {
-	// 		fmt.Println("OK ValueChan is zero")
-	// 		break
-	// 	}
-	// }
+	//fmt.Println("Dead here 4")
+
+	var stopType int
 	stopper.stopMutex.RLock()
-	stopType := stopper.value
+	stopType = stopper.value
 	stopper.stopMutex.RUnlock()
+	//fmt.Println("Dead here 5")
+
+	for {
+		//fmt.Println("Waiting for zero")
+		if stopType != 3 && len(valueChan) != 0 {
+			updatedValuer := <-valueChan
+			//returnValue = updatedValuer.value
+			returnValuer.returnedValuerMutex.Lock()
+			returnValuer.value = updatedValuer.value
+			returnValuer.returnedValueMap[updatedValuer.NodeID] = true
+			returnValuer.returnedValuerMutex.Unlock()
+			stopper.stopMutex.Lock()
+			stopper.value = 3
+			stopType = 3
+			stopper.stopMutex.Unlock()
+			//fmt.Println("OK ValueChan")
+			break
+		} else {
+			break
+		}
+	}
+
 	var returnString string
 	// var returnContacts []Contact
+	//fmt.Println("~~~~~~~~~~~~~~~~~Why stop" + strconv.Itoa(stopType))
 
 	if stopType == 3 {
+		//fmt.Println("Find Value stop 3!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		fmt.Println(strconv.Itoa(len(returnValuer.returnedValueMap)))
+		returnValue = returnValuer.value
 		// shortListLen := len(shortList)
 		// for i := 0; i < shortListLen; i++ {
 		// 	contactItem := <-shortList
@@ -834,7 +882,8 @@ HandleLoop:
 		dostoreContact := clostestNode.selfContact
 		clostestNode.shortDistanceMutex.RUnlock()
 		k.DoStore(&dostoreContact, key, returnValue)
-		for k := range returnedValueMap {
+		for k := range returnValuer.returnedValueMap {
+			//fmt.Println("Here in Find value: " + string(returnValue[:]))
 			returnString = returnString + " ID: " + k.AsString() + " Value: " + string(returnValue[:])
 			break
 		}

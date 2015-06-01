@@ -122,7 +122,10 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 						all := append([]byte{k}, v...)
 						kadem.DoIterativeStore(randomSequence[i], all)
 					}
+
 					validPeriod = validPeriod - 8
+
+					//after valid time period the data expires
 					if validPeriod <= 0 {
 						stop <- 1
 					}

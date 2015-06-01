@@ -77,6 +77,38 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 	return ciphertext
 }
 
+func GetEpochAccessKey(epochType int) (accessKey int64) {
+	//Divide 24 hour into epochType
+	//0 is current, 1 is prevoius, 2 is later
+	currentTime := time.Now()
+	currentHour := currentTime.Hour()
+	var currentEpochHour int
+	if currentHour >= 0 && currentHour < 8 {
+		currentHour = 0
+	} else if currentHour >= 8 && currentHour < 16 {
+		currentHour = 8
+	} else {
+		currentHour = 16
+	}
+	currentYear := currentTime.Year()
+	currentMonth := currentTime.Month()
+	currentDay := currentTime.Day()
+	currentLocation := currentTime.Location()
+	if epochType == 0 {
+		currentEpochHour = currentHour
+	} else if epochType == 1 {
+		currentEpochHour = currentHour - 8
+	} else if epochType == 2 {
+		currentEpochHour = currentHour + 8
+	} else {
+		currentEpochHour = 0
+	}
+	resultTime := time.Date(currentYear, currentMonth, currentDay, currentEpochHour, 0, 0, 0, currentLocation)
+	r := mathrand.New(mathrand.NewSource(resultTime.UnixNano()))
+	accessKey = r.Int63()
+	return
+}
+
 func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 	threshold byte, validPeriod int) (vdo VanashingDataObject) {
 	k := GenerateRandomCryptoKey()
@@ -88,7 +120,7 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 		return vdo
 	}
 
-	accessKey := GenerateRandomAccessKey()
+	accessKey := GetEpochAccessKey(0)
 	randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
 
 	//store keys
@@ -105,15 +137,16 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 		kadem.DoIterativeStore(randomSequence[i], all)
 	}
 
-	if (validPeriod > 8) {
+	if validPeriod > 8 {
 		ticker := time.NewTicker(Hour * 8)
 		stop := make(chan int)
 		go func() {
-		    for {
-		       select {
-		        case <- ticker.C:
-		        	// republish
-	        		randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
+			for {
+				select {
+				case <-ticker.C:
+					// republish
+					accessKey = GetEpochAccessKey(0)
+					randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
 					//store keys
 					for i := 0; i < len(randomSequence); i++ {
 						//all := append([]byte{k}, v...)
@@ -126,13 +159,15 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 					if validPeriod <= 0 {
 						stop <- 1
 					}
-		            
-		        case <- stop:
-		            ticker.Stop()
-		            return
-		        }
-		    }
-	 	}()
+
+				case <-stop:
+					ticker.Stop()
+					return
+				default:
+
+				}
+			}
+		}()
 	}
 
 	//create vdo object
@@ -145,66 +180,69 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 }
 
 func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
-	accessKey := vdo.AccessKey
+	//accessKey := vdo.AccessKey
 	ciphertext := vdo.Ciphertext
 	numberOfKeys := vdo.NumberKeys
 	threShold := vdo.Threshold
 	splitKeysMap := make(map[byte][]byte)
 
-	randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberOfKeys))
+	for j := 0; j < 3; j++ {
+		//Get access key by current epoch, try all three epochs
+		accessKey := GetEpochAccessKey(j)
+		randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberOfKeys))
+		//store keys
+		for i := 0; i < len(randomSequence); i++ {
+			resString := kadem.DoIterativeFindValue(randomSequence[i])
+			indexV := strings.Index(resString, "Value:")
+			// fmt.Println("Unvanish" + strconv.Itoa(i))
+			// fmt.Println("Value is:" + resString)
 
-	//store keys
-	for i := 0; i < len(randomSequence); i++ {
-		resString := kadem.DoIterativeFindValue(randomSequence[i])
-		indexV := strings.Index(resString, "Value:")
-		// fmt.Println("Unvanish" + strconv.Itoa(i))
-		// fmt.Println("Value is:" + resString)
+			if indexV != -1 {
+				// fmt.Println("Come here:" + strconv.Itoa(i))
+				indexV = indexV + 7
+				resString = resString[indexV:]
+				// fmt.Println("````````````````````````````````RES LENGTH" + strconv.Itoa(len(resString)))
+				if len(resString) > 1 {
+					resultByte := []byte(resString)
+					v := resultByte[1:]
+					k := resultByte[0:1]
+					// fmt.Print("#########################UnVanish key is: ")
+					// fmt.Printf("%x", string(k[:]))
+					for inde := range k {
+						key := k[inde]
+						//fmt.Print("#########################What is the key here: ")
+						//fmt.Printf("%x", string(key))
+						//fmt.Print("#########################Put in split: ")
+						//fmt.Printf("%x", string(v[:]))
+						splitKeysMap[byte(key)] = v
+						//fmt.Println("splitKeysMap size change to:" + strconv.Itoa(int(len(splitKeysMap))))
 
-		if indexV != -1 {
-			// fmt.Println("Come here:" + strconv.Itoa(i))
-			indexV = indexV + 7
-			resString = resString[indexV:]
-			// fmt.Println("````````````````````````````````RES LENGTH" + strconv.Itoa(len(resString)))
-			if len(resString) > 1 {
-				resultByte := []byte(resString)
-				v := resultByte[1:]
-				k := resultByte[0:1]
-				// fmt.Print("#########################UnVanish key is: ")
-				// fmt.Printf("%x", string(k[:]))
-				for inde := range k {
-					key := k[inde]
-					//fmt.Print("#########################What is the key here: ")
-					//fmt.Printf("%x", string(key))
-					//fmt.Print("#########################Put in split: ")
-					//fmt.Printf("%x", string(v[:]))
-					splitKeysMap[byte(key)] = v
-					//fmt.Println("splitKeysMap size change to:" + strconv.Itoa(int(len(splitKeysMap))))
-
+						break
+					}
+				}
+				if int64(len(splitKeysMap)) == int64(threShold) {
 					break
 				}
-			}
-			if int64(len(splitKeysMap)) == int64(threShold) {
-				break
-			}
 
-		} else {
-			continue
+			} else {
+				continue
+			}
+		}
+		//fmt.Println("How many we have in splitKeysMap:" + strconv.Itoa(int(len(splitKeysMap))))
+		//fmt.Println("How many we have for threShold:" + strconv.Itoa(int(threShold)))
+
+		if int64(len(splitKeysMap)) >= int64(threShold) {
+			//fmt.Println("How many we have:" + strconv.Itoa(int(len(splitKeysMap))))
+			secretKey := sss.Combine(splitKeysMap)
+			data = decrypt(secretKey, ciphertext)
+			fmt.Print("=================Data is in hex: ")
+			fmt.Printf("%x", string(data[:]))
+			fmt.Print("=================Data is: ")
+			fmt.Print(data)
+			if data != nil {
+				return
+			}
 		}
 	}
-	//fmt.Println("How many we have in splitKeysMap:" + strconv.Itoa(int(len(splitKeysMap))))
-	//fmt.Println("How many we have for threShold:" + strconv.Itoa(int(threShold)))
-
-	if int64(len(splitKeysMap)) >= int64(threShold) {
-		//fmt.Println("How many we have:" + strconv.Itoa(int(len(splitKeysMap))))
-		secretKey := sss.Combine(splitKeysMap)
-		data = decrypt(secretKey, ciphertext)
-		fmt.Print("=================Data is in hex: ")
-		fmt.Printf("%x", string(data[:]))
-		fmt.Print("=================Data is: ")
-		fmt.Print(data)
-
-		return
-	}
-
 	return
 }

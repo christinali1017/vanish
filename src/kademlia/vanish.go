@@ -125,15 +125,9 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 
 	//store keys
 	for i := 0; i < len(randomSequence); i++ {
-		//all := append([]byte{k}, v...)
 		k := byte(i + 1)
 		v := splitKeysMap[k]
 		all := append([]byte{k}, v...)
-		// fmt.Print("#########################Vanish key is: ")
-		// fmt.Printf("%x", string(k))
-		// fmt.Print("#########################Store Value is: ")
-		// fmt.Printf("%x", string(v[:]))
-		// fmt.Println("beforem interative store length:" + strconv.Itoa(len(all)))
 		kadem.DoIterativeStore(randomSequence[i], all)
 	}
 	// validPeriod means how many epoch does the user want to extend the peroid, since wo don't have so many echanges among nodes
@@ -148,9 +142,9 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 					// republish
 					accessKey = GetEpochAccessKey(0)
 					randomSequence := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
+					
 					//store keys
 					for i := 0; i < len(randomSequence); i++ {
-						//all := append([]byte{k}, v...)
 						k := byte(i + 1)
 						v := splitKeysMap[k]
 						all := append([]byte{k}, v...)
@@ -198,28 +192,17 @@ func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
 		for i := 0; i < len(randomSequence); i++ {
 			resString := kadem.DoIterativeFindValue(randomSequence[i])
 			indexV := strings.Index(resString, "Value:")
-			// fmt.Println("Unvanish" + strconv.Itoa(i))
-			// fmt.Println("Value is:" + resString)
 
 			if indexV != -1 {
-				// fmt.Println("Come here:" + strconv.Itoa(i))
 				indexV = indexV + 7
 				resString = resString[indexV:]
-				// fmt.Println("````````````````````````````````RES LENGTH" + strconv.Itoa(len(resString)))
 				if len(resString) > 1 {
 					resultByte := []byte(resString)
 					v := resultByte[1:]
 					k := resultByte[0:1]
-					// fmt.Print("#########################UnVanish key is: ")
-					// fmt.Printf("%x", string(k[:]))
 					for inde := range k {
 						key := k[inde]
-						//fmt.Print("#########################What is the key here: ")
-						//fmt.Printf("%x", string(key))
-						//fmt.Print("#########################Put in split: ")
-						//fmt.Printf("%x", string(v[:]))
 						splitKeysMap[byte(key)] = v
-						//fmt.Println("splitKeysMap size change to:" + strconv.Itoa(int(len(splitKeysMap))))
 
 						break
 					}
@@ -232,15 +215,11 @@ func UnvanishData(kadem Kademlia, vdo VanashingDataObject) (data []byte) {
 				continue
 			}
 		}
-		//fmt.Println("How many we have in splitKeysMap:" + strconv.Itoa(int(len(splitKeysMap))))
-		//fmt.Println("How many we have for threShold:" + strconv.Itoa(int(threShold)))
 
 		if int64(len(splitKeysMap)) >= int64(threShold) {
 			//fmt.Println("How many we have:" + strconv.Itoa(int(len(splitKeysMap))))
 			secretKey := sss.Combine(splitKeysMap)
 			data = decrypt(secretKey, ciphertext)
-			fmt.Print("=================Data is in hex: ")
-			fmt.Printf("%x", string(data[:]))
 			fmt.Print("=================Data is: ")
 			fmt.Print(data)
 			if data != nil {

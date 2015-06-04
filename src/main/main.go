@@ -6,9 +6,12 @@ bhs976  Biao He
 
 Note:
 
-In the kademlia_test.go file, we combine the test testIterativeFindNode and testIterativeFindValue together
-That is because our machine craches when create so many instance and listen their port then create them again without close them.
-However the combined function which called TestIterativeFindFunctions works well.
+We have done the extra crdit part and have wrote a simple test for the vanish and unvanish part in the kademlia_test.go file. You can test it use the go test. 
+
+Thanks for answering our questions in TA session, piazza, email... Also thanks for prepare the skeleton code, explanation documents and 
+all other materials for us in the whole quarter. And the grading.....
+
+Wish you have good summer break:)
 ===========================================================================================*/
 
 package main

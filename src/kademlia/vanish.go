@@ -136,8 +136,9 @@ func VanishData(kadem Kademlia, data []byte, numberKeys byte,
 		// fmt.Println("beforem interative store length:" + strconv.Itoa(len(all)))
 		kadem.DoIterativeStore(randomSequence[i], all)
 	}
-
-	if validPeriod > 8 {
+	// validPeriod means how many epoch does the user want to extend the peroid, since wo don't have so many echanges among nodes
+	//we refresh the key each 8 hour
+	if validPeriod > 0 {
 		ticker := time.NewTicker(Hour * 8)
 		stop := make(chan int)
 		go func() {

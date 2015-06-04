@@ -1,18 +1,3 @@
-/*==================== Group Information==================================================
-
-jll809  Juan li
-qhd519  Qiyuan Hu
-bhs976  Biao He
-
-Note:
-
-We have done the extra crdit part and have wrote a simple test for the vanish and unvanish part in the kademlia_test.go file. You can test it use the go test. 
-
-Thanks for answering our questions in TA session, piazza, email... Also thanks for prepare the skeleton code, explanation documents and 
-all other materials for us in the whole quarter. And the grading.....
-
-Wish you have good summer break:)
-===========================================================================================*/
 
 package main
 
